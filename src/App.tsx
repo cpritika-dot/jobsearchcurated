@@ -7,6 +7,7 @@ import { JobDetailModal } from './components/JobDetailModal';
 import { SendMessageModal } from './components/SendMessageModal';
 import { ProfileModal } from './components/ProfileModal';
 import { ScheduleModal } from './components/ScheduleModal';
+import { AdditionalLanguageView } from './components/AdditionalLanguageView';
 import {
   JobPosting,
   NotablePatterns,
@@ -15,7 +16,7 @@ import {
   ScheduleRunLog,
   ApplicationStatus,
 } from './types/job';
-import { INITIAL_CURATED_JOBS, NOTABLE_PATTERNS } from './data/curatedJobs';
+import { INITIAL_CURATED_JOBS, NOTABLE_PATTERNS, ADDITIONAL_LANGUAGE_JOBS } from './data/curatedJobs';
 import { INITIAL_PROFILES, LILLY_PROFILE } from './data/presetProfiles';
 import { rankJobsForProfile } from './utils/matchingEngine';
 import {
@@ -30,6 +31,8 @@ import {
   User,
   Sparkles,
   ShieldCheck,
+  ArrowRight,
+  Languages,
 } from 'lucide-react';
 
 const DEFAULT_SCHEDULE: ScheduleConfig = {
@@ -119,7 +122,7 @@ export default function App() {
   });
 
   // Modals & Navigation
-  const [activeView, setActiveView] = useState<'ranked' | 'patterns' | 'pipeline' | 'profile'>('ranked');
+  const [activeView, setActiveView] = useState<'ranked' | 'additional-languages' | 'patterns' | 'pipeline' | 'profile'>('ranked');
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
   const [isSendMessageOpen, setIsSendMessageOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -148,9 +151,13 @@ export default function App() {
   }, [allProfiles, activeProfile, schedule, runLogs, pipelineMap]);
 
   // Compute dynamically ranked jobs & patterns for active profile
-  const { rankedJobs, dynamicPatterns } = useMemo(() => {
-    const res = rankJobsForProfile(rawJobs, activeProfile);
-    return { rankedJobs: res.rankedJobs, dynamicPatterns: res.patterns };
+  const { rankedJobs, additionalLanguageJobs, dynamicPatterns } = useMemo(() => {
+    const res = rankJobsForProfile(rawJobs, activeProfile, ADDITIONAL_LANGUAGE_JOBS);
+    return {
+      rankedJobs: res.rankedJobs,
+      additionalLanguageJobs: res.additionalLanguageJobs,
+      dynamicPatterns: res.patterns,
+    };
   }, [rawJobs, activeProfile]);
 
   const handleRefresh = async () => {
@@ -337,6 +344,7 @@ export default function App() {
         setActiveView={setActiveView}
         savedCount={stats.saved}
         appliedCount={stats.applied}
+        additionalLanguagesCount={additionalLanguageJobs.length}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
         onOpenSendMessage={() => setIsSendMessageOpen(true)}
@@ -404,6 +412,26 @@ export default function App() {
               candidateName={activeProfile.name}
               onFilterCompany={(company: string) => setSearchQuery(company)}
             />
+
+            {/* Top 50 English-Only Quality Invariant & Segregated Language Alert Banner */}
+            <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-start sm:items-center gap-2.5 text-neutral-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+                <div>
+                  <span className="font-semibold text-emerald-950">Top 50 English-Only Invariant Enforced:</span>{' '}
+                  <span className="text-neutral-700">All 50 ranked roles below operate 100% in English. {additionalLanguageJobs.length} roles requiring mandatory French (including Pennylane, PayFit, and Swile) have been segregated to the <strong>Additional Language Requirements</strong> tab.</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setActiveView('additional-languages')}
+                className="inline-flex items-center gap-1.5 font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200/90 border border-amber-300/80 px-3 py-1.5 rounded-lg transition-colors shrink-0 whitespace-nowrap self-start sm:self-auto cursor-pointer"
+              >
+                <Languages className="w-3.5 h-3.5 text-amber-700" />
+                <span>View Additional Language Roles ({additionalLanguageJobs.length})</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Filter & Controls Toolbar */}
             <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 shadow-xs space-y-4">
@@ -569,7 +597,19 @@ export default function App() {
           </>
         )}
 
-        {/* View 2: Hiring Patterns Detailed View */}
+        {/* View 2: Roles with Mandatory Additional Language Requirements (Pennylane, PayFit, Swile, etc.) */}
+        {activeView === 'additional-languages' && (
+          <AdditionalLanguageView
+            jobs={additionalLanguageJobs}
+            candidateName={activeProfile.name}
+            pipelineMap={pipelineMap}
+            onUpdateStatus={updateJobStatus}
+            onSelectJob={(j) => setSelectedJob(j)}
+            onSwitchToRanked={() => setActiveView('ranked')}
+          />
+        )}
+
+        {/* View 3: Hiring Patterns Detailed View */}
         {activeView === 'patterns' && (
           <div className="space-y-6">
             <ExecutiveIntelligenceCockpit
@@ -769,6 +809,7 @@ export default function App() {
       {isSendMessageOpen && (
         <SendMessageModal
           jobs={rankedJobs}
+          additionalLanguageJobs={additionalLanguageJobs}
           patterns={dynamicPatterns}
           activeProfile={activeProfile}
           onClose={() => setIsSendMessageOpen(false)}

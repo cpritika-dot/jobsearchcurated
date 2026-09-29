@@ -122,6 +122,22 @@ export const JobCard: React.FC<JobCardProps> = ({
                 <span>Verified: {(job.verificationSources && job.verificationSources.length > 0 ? job.verificationSources : [job.source + ' Careers', 'LinkedIn Jobs', 'Welcome to the Jungle']).join(' · ')}</span>
               </span>
             </div>
+
+            {/* Language Requirement & Segregation Notice */}
+            {job.requiresNonEnglish ? (
+              <div className="flex items-start gap-1.5 p-2 rounded-lg bg-amber-50/90 border border-amber-200 text-xs text-amber-900 mt-1">
+                <span className="font-semibold shrink-0 flex items-center gap-1 text-amber-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                  Additional Language: {job.mandatoryLanguages?.join(' + ') || 'French'}
+                </span>
+                <span className="text-amber-700 leading-snug">· {job.additionalLanguageDetails || 'French required for customer discovery or regulatory compliance.'}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-700 pt-0.5 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>100% English-First · Sole mandatory language</span>
+              </div>
+            )}
           </div>
         </div>
 

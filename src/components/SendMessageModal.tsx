@@ -4,6 +4,7 @@ import { X, Copy, Check, Send, Download, CheckCircle2, FileText } from 'lucide-r
 
 interface SendMessageModalProps {
   jobs: JobPosting[];
+  additionalLanguageJobs?: JobPosting[];
   patterns: NotablePatterns;
   activeProfile: CandidateProfile;
   onClose: () => void;
@@ -11,6 +12,7 @@ interface SendMessageModalProps {
 
 export const SendMessageModal: React.FC<SendMessageModalProps> = ({
   jobs,
+  additionalLanguageJobs = [],
   patterns,
   activeProfile,
   onClose,
@@ -20,7 +22,7 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
 
   // Format the complete text exactly to user specification
   const generateFormattedText = () => {
-    let text = `TOP 50 PRODUCT MANAGER & EXECUTIVE ROLES FOR ${activeProfile.name.toUpperCase()} (DAILY CURATED DISPATCH)\n\n`;
+    let text = `TOP 50 PRODUCT MANAGER & EXECUTIVE ROLES FOR ${activeProfile.name.toUpperCase()} (100% ENGLISH-FIRST CURATED DISPATCH)\n\n`;
     text += `Target Profile: ${activeProfile.targetRole} (${activeProfile.experienceYears}+ yrs PM) | ${activeProfile.previousCompanies.map((c) => `${c.name} (${c.domain})`).join(' + ')}\n`;
     text += `Target Sectors: ${activeProfile.targetSectors.join(', ')}\n`;
     text += `Location Priority: (1) ${activeProfile.locationPreferences.priority1}; (2) ${activeProfile.locationPreferences.priority2}; (3) ${activeProfile.locationPreferences.priority3}\n`;
@@ -56,6 +58,18 @@ export const SendMessageModal: React.FC<SendMessageModalProps> = ({
       .map((c) => `${c.company} (${c.count} roles: ${c.note})`)
       .join('; ')}.\n`;
     text += `Key Market Takeaway: ${patterns.marketTakeaway}\n`;
+
+    if (additionalLanguageJobs && additionalLanguageJobs.length > 0) {
+      text += `\n================================================================================\n`;
+      text += `ADDITIONAL LANGUAGE REQUIREMENTS (${additionalLanguageJobs.length} ROLES SEGREGATED FROM TOP 50):\n`;
+      text += `Note: These positions are strong domain matches but require mandatory French for client discovery or regulatory compliance:\n\n`;
+      additionalLanguageJobs.forEach((job, idx) => {
+        text += `${idx + 1}. ${job.company} — ${job.title} (${job.location})\n`;
+        text += `   Mandatory Language: ${job.mandatoryLanguages?.join(' + ') || 'French'}\n`;
+        text += `   Reason: ${job.additionalLanguageDetails || 'Customer discovery with local French accountants/institutions'}\n`;
+        text += `   Direct Link: ${job.directUrl}\n\n`;
+      });
+    }
 
     return text;
   };

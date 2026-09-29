@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
-import { INITIAL_CURATED_JOBS, NOTABLE_PATTERNS } from './src/data/curatedJobs.js';
+import { INITIAL_CURATED_JOBS, NOTABLE_PATTERNS, ADDITIONAL_LANGUAGE_JOBS } from './src/data/curatedJobs.js';
 import { LILLY_PROFILE } from './src/data/presetProfiles.js';
 import { JobPosting, CandidateProfile, ScheduleConfig, ScheduleRunLog } from './src/types/job.js';
 
@@ -58,6 +58,7 @@ app.get('/api/jobs', (_req: Request, res: Response) => {
     profile: activeProfile,
     notablePatterns: NOTABLE_PATTERNS,
     jobs: currentJobs,
+    additionalLanguageJobs: ADDITIONAL_LANGUAGE_JOBS,
     runLogs: scheduleRunLogs,
   });
 });

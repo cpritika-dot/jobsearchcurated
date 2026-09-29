@@ -113,6 +113,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 Verified: {job.verificationSources?.join(' · ') || job.source}
               </span>
             </div>
+
+            {/* Language Requirement Callout */}
+            {job.requiresNonEnglish ? (
+              <div className="mt-2.5 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                <div className="font-semibold text-amber-800 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                  Additional Language Requirement: {job.mandatoryLanguages?.join(' + ') || 'French'}
+                </div>
+                <div className="text-amber-700 leading-relaxed">
+                  {job.additionalLanguageDetails || 'Mandatory non-English language requirement. Segregated from the Top 50 English pool.'}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-emerald-700 flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>100% English-First Role · No local language barriers</span>
+              </div>
+            )}
           </div>
 
           <button

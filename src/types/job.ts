@@ -21,6 +21,9 @@ export interface JobPosting {
   fitReason: string; // One-line reason why it fits the profile
   experienceBar: string; // e.g. "7+ years", "7-10 years"
   languageRequirement: string; // "English-first (verified)", etc.
+  requiresNonEnglish?: boolean; // True if a language other than English is mandatory (e.g. French, German)
+  mandatoryLanguages?: string[]; // e.g. ['English', 'French']
+  additionalLanguageDetails?: string; // Reason why non-English is required (e.g. "French required for French chartered accountants / experts-comptables")
   directUrl: string;
   source: 'Greenhouse' | 'Lever' | 'Ashby' | 'Welcome to the Jungle' | 'LinkedIn' | 'Company Direct';
   verified: boolean; // Verified via career site / search snippet

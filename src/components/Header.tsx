@@ -5,10 +5,11 @@ import { CandidateProfile, ScheduleConfig } from '../types/job';
 interface HeaderProps {
   activeProfile: CandidateProfile;
   schedule: ScheduleConfig;
-  activeView: 'ranked' | 'patterns' | 'pipeline' | 'profile';
-  setActiveView: (view: 'ranked' | 'patterns' | 'pipeline' | 'profile') => void;
+  activeView: 'ranked' | 'additional-languages' | 'patterns' | 'pipeline' | 'profile';
+  setActiveView: (view: 'ranked' | 'additional-languages' | 'patterns' | 'pipeline' | 'profile') => void;
   savedCount: number;
   appliedCount: number;
+  additionalLanguagesCount?: number;
   isRefreshing: boolean;
   onRefresh: () => void;
   onOpenSendMessage: () => void;
@@ -24,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveView,
   savedCount,
   appliedCount,
+  additionalLanguagesCount = 8,
   isRefreshing,
   onRefresh,
   onOpenSendMessage,
@@ -65,6 +67,22 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             Top 50 Ranked Feed
+          </button>
+
+          <button
+            onClick={() => setActiveView('additional-languages')}
+            className={`transition-colors pb-0.5 flex items-center gap-1.5 ${
+              activeView === 'additional-languages'
+                ? 'text-neutral-900 border-b-2 border-neutral-900 font-semibold'
+                : 'hover:text-neutral-900'
+            }`}
+          >
+            <span>Additional Language Requirements</span>
+            {additionalLanguagesCount > 0 && (
+              <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-md font-mono tabular-nums font-semibold">
+                {additionalLanguagesCount}
+              </span>
+            )}
           </button>
 
           <button

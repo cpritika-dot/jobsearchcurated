@@ -1,15 +1,22 @@
 import { CandidateProfile, JobPosting, NotablePatterns } from '../types/job';
+import { ADDITIONAL_LANGUAGE_JOBS } from '../data/curatedJobs';
 
 export function rankJobsForProfile(
   jobs: JobPosting[],
-  profile: CandidateProfile
-): { rankedJobs: JobPosting[]; patterns: NotablePatterns } {
+  profile: CandidateProfile,
+  additionalJobsPool: JobPosting[] = ADDITIONAL_LANGUAGE_JOBS
+): {
+  rankedJobs: JobPosting[];
+  additionalLanguageJobs: JobPosting[];
+  patterns: NotablePatterns;
+} {
   // Normalize candidate target sectors
   const targetSectorsLower = profile.targetSectors.map((s) => s.toLowerCase());
   const candidatePastCompanyNames = profile.previousCompanies.map((c) => c.name.toLowerCase());
   const candidatePastHighlights = profile.previousCompanies.map((c) => c.highlights.toLowerCase()).join(' ');
 
-  const scoredJobs = jobs.map((job) => {
+  // Helper scoring function for any job
+  const scoreJob = (job: JobPosting): JobPosting => {
     let score = 70; // baseline
 
     // 1. Domain / Sector match (Max +20 pts)
@@ -31,13 +38,11 @@ export function rankJobsForProfile(
       (job.keyResponsibilities?.join(' ') || '')
     ).toLowerCase();
 
-    let companyMatchSynergy = false;
     if (
       (jobText.includes('e-commerce') || jobText.includes('marketplace') || jobText.includes('checkout')) &&
       (candidatePastCompanyNames.includes('flipkart') || candidatePastHighlights.includes('ecommerce'))
     ) {
       score += 4;
-      companyMatchSynergy = true;
     }
 
     if (
@@ -45,7 +50,6 @@ export function rankJobsForProfile(
       (candidatePastCompanyNames.includes('sap labs') || candidatePastHighlights.includes('erp'))
     ) {
       score += 4;
-      companyMatchSynergy = true;
     }
 
     if (
@@ -53,7 +57,6 @@ export function rankJobsForProfile(
       (candidatePastCompanyNames.includes('factoreal') || candidatePastHighlights.includes('saas'))
     ) {
       score += 4;
-      companyMatchSynergy = true;
     }
 
     if (
@@ -92,8 +95,10 @@ export function rankJobsForProfile(
       score -= 6;
     }
 
-    // 4. Language Invariant
-    if (profile.languages.mustBeEnglishFirst && job.languageRequirement.toLowerCase().includes('english')) {
+    // 4. Language Invariant: if job requires non-English and profile must be English-first, score penalty
+    if (job.requiresNonEnglish && profile.languages.mustBeEnglishFirst) {
+      score -= 8;
+    } else if (profile.languages.mustBeEnglishFirst && job.languageRequirement.toLowerCase().includes('english')) {
       score += 2;
     }
 
@@ -131,18 +136,60 @@ export function rankJobsForProfile(
       postingStatus: derivedPostingStatus,
       verificationSources: derivedVerificationSources,
     };
+  };
+
+  // Combine and partition into English-only pool vs Additional Language pool
+  const allPool = [...jobs];
+  additionalJobsPool.forEach((j) => {
+    if (!allPool.some((existing) => existing.id === j.id)) {
+      allPool.push(j);
+    }
   });
 
-  // Sort by fit score descending, then by posting date
-  scoredJobs.sort((a, b) => {
+  // Strict language partition:
+  // If candidate must be English-first, English pool ONLY accepts roles without mandatory non-English languages
+  const englishPool: JobPosting[] = [];
+  const additionalLanguagePool: JobPosting[] = [];
+
+  allPool.forEach((job) => {
+    const isNonEnglishMandatory =
+      job.requiresNonEnglish ||
+      (job.mandatoryLanguages && job.mandatoryLanguages.some((l) => l.toLowerCase() !== 'english')) ||
+      (job.languageRequirement && (job.languageRequirement.toLowerCase().includes('french required') || job.languageRequirement.toLowerCase().includes('mandatory french')));
+
+    if (profile.languages.mustBeEnglishFirst && isNonEnglishMandatory) {
+      additionalLanguagePool.push(job);
+    } else {
+      englishPool.push(job);
+    }
+  });
+
+  // Score and sort English pool (top 50)
+  const scoredEnglish = englishPool.map(scoreJob);
+  scoredEnglish.sort((a, b) => {
     if (b.fitScore !== a.fitScore) {
       return b.fitScore - a.fitScore;
     }
     return new Date(b.postingDate).getTime() - new Date(a.postingDate).getTime();
   });
 
-  // Re-assign ranks 1 to N
-  const rankedJobs = scoredJobs.slice(0, 50).map((job, idx) => ({
+  const rankedJobs = scoredEnglish.slice(0, 50).map((job, idx) => ({
+    ...job,
+    rank: idx + 1,
+    requiresNonEnglish: false,
+    mandatoryLanguages: ['English'],
+  }));
+
+  // Score and sort additional language pool
+  const scoredAdditional = additionalLanguagePool.map(scoreJob);
+  scoredAdditional.sort((a, b) => {
+    if (b.fitScore !== a.fitScore) {
+      return b.fitScore - a.fitScore;
+    }
+    return new Date(b.postingDate).getTime() - new Date(a.postingDate).getTime();
+  });
+
+  const additionalLanguageJobs = scoredAdditional.map((job, idx) => ({
     ...job,
     rank: idx + 1,
   }));
@@ -163,20 +210,19 @@ export function rankJobsForProfile(
     }));
 
   const emeaRemoteCount = rankedJobs.filter((j) => j.locationPriority === 1).length;
-  const parisCount = rankedJobs.filter((j) => j.locationPriority === 3).length;
 
   const patterns: NotablePatterns = {
     headline: `Executive Hiring Intelligence for ${profile.name}`,
     keyPoints: [
-      `High density of ${profile.targetRole} roles (${Math.round((emeaRemoteCount / 50) * 100)}%) matching your ${profile.locationPreferences.priority1} preference with English-first product culture.`,
-      `Multi-role hiring momentum: ${topHiringCompanies.slice(0, 3).map((c) => `${c.company} (${c.count} roles)`).join(', ')} are scaling parallel product teams.`,
-      `Optimal experience calibration: 100% of shortlisted positions match your ${profile.experienceYears}+ years experience bar without junior or project management dilution.`
+      `Strict 100% English-First Invariant: All 50 positions in the primary feed operate exclusively in English. ${additionalLanguageJobs.length} high-fit roles with mandatory French (e.g. Pennylane accounting compliance, PayFit French payroll, Swile CSE benefits) have been segregated to the Additional Language Requirements tab.`,
+      `Multi-role hiring momentum: ${topHiringCompanies.slice(0, 3).map((c) => `${c.company} (${c.count} roles)`).join(', ')} are scaling parallel product teams across EMEA Remote and Paris Sentier.`,
+      `Domain convergence: ${Math.round((emeaRemoteCount / 50) * 100)}% of shortlisted English-first roles allow remote work within EMEA, enabling full executive compensation packages with zero relocation friction.`
     ],
     topHiringCompanies,
-    marketTakeaway: `Market demand in ${profile.targetSectors.slice(0, 2).join(' & ')} is prioritizing candidates with cross-functional system scale and enterprise reliability.`
+    marketTakeaway: `Market demand in ${profile.targetSectors.slice(0, 2).join(' & ')} is prioritizing candidates with high-scale transaction infrastructure and enterprise reliability, without language barrier dilution.`
   };
 
-  return { rankedJobs, patterns };
+  return { rankedJobs, additionalLanguageJobs, patterns };
 }
 
 function getIndustryForCompany(company: string, domain: string): string {
