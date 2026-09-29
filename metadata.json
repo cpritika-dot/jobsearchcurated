@@ -1,0 +1,6 @@
+{
+  "name": "Lilly's Daily PM Job Lister & Ranked Dashboard",
+  "description": "Daily curated and ranked top 50 Product Manager and Senior Product Manager roles across EMEA Remote and Paris, customized for Lilly's 7+ years track record in Flipkart e-commerce, SAP enterprise software, Factoreal B2B SaaS, and Franz Edelman analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
